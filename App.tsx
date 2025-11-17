@@ -1,0 +1,447 @@
+import React, { useState, useCallback } from 'react';
+import { TranslationPair } from './types';
+import { translateText, researchTerm, checkPunctuation } from './services/geminiService';
+import FileUpload from './components/FileUpload';
+import Loader from './components/Loader';
+import { TranslateIcon, CheckCircleIcon, XCircleIcon, SearchIcon, XIcon, ClipboardCopyIcon, TrashIcon, SparklesIcon, PencilIcon } from './components/icons';
+import TmSearchResultsModal from './components/TmSearchResultsModal';
+import AskAiModal from './components/AskAiModal';
+
+const App: React.FC = () => {
+  const [translationMemory, setTranslationMemory] = useState<TranslationPair[]>([]);
+  const [spanishText, setSpanishText] = useState<string>('');
+  const [arabicText, setArabicText] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isPunctuationLoading, setIsPunctuationLoading] = useState<boolean>(false);
+  const [isContextExpanded, setIsContextExpanded] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  
+  const [selectedSpanishText, setSelectedSpanishText] = useState<string>('');
+  const [tmSearchResults, setTmSearchResults] = useState<TranslationPair[]>([]);
+  const [isTmSearchModalOpen, setIsTmSearchModalOpen] = useState<boolean>(false);
+  const [contextPairs, setContextPairs] = useState<TranslationPair[]>([]);
+  const [isCopied, setIsCopied] = useState<boolean>(false);
+
+  const [isAskAiModalOpen, setIsAskAiModalOpen] = useState<boolean>(false);
+  const [askAiResult, setAskAiResult] = useState<string>('');
+  const [isAskAiLoading, setIsAskAiLoading] = useState<boolean>(false);
+
+  const [isCloudTmLoading, setIsCloudTmLoading] = useState<boolean>(true);
+  const [cloudTmFailed, setCloudTmFailed] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    const fetchCloudTm = async () => {
+      try {
+        const response = await fetch('https://raw.githubusercontent.com/anwarefe/my-translator-files/refs/heads/main/translation_memory_spanish_arabic_large.json');
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        if (!Array.isArray(data) || data.some(item => typeof item.spanish !== 'string' || typeof item.arabic !== 'string')) {
+          throw new Error('Invalid JSON structure from cloud TM.');
+        }
+        
+        setTranslationMemory(data);
+        setFileName('Cloud TM');
+        setError(null);
+        setCloudTmFailed(false);
+      } catch (e: any) {
+        console.error("Cloud TM fetch failed:", e);
+        setError('Cloud TM failed. Please upload manually.');
+        setCloudTmFailed(true);
+      } finally {
+        setIsCloudTmLoading(false);
+      }
+    };
+
+    fetchCloudTm();
+  }, []);
+
+  const handleFileSelect = useCallback((file: File) => {
+    setError(null);
+    setFileName(null);
+    setTranslationMemory([]);
+
+    if (file.type !== 'application/json') {
+      setError('Invalid file type. Please upload a JSON file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const parsedJson = JSON.parse(content);
+
+        if (!Array.isArray(parsedJson) || parsedJson.some(item => typeof item.spanish !== 'string' || typeof item.arabic !== 'string')) {
+          setError('Invalid JSON structure. Expected an array of objects with "spanish" and "arabic" string properties.');
+          return;
+        }
+
+        setTranslationMemory(parsedJson);
+        setFileName(file.name);
+      } catch (e) {
+        setError('Failed to parse JSON file.');
+        console.error(e);
+      }
+    };
+    reader.onerror = () => {
+      setError('Failed to read file.');
+    };
+    reader.readAsText(file);
+  }, []);
+
+  const handleTranslate = async () => {
+    if (!spanishText || isLoading) return;
+
+    setIsLoading(true);
+    setError(null);
+    setArabicText('');
+
+    try {
+      const result = await translateText(spanishText, translationMemory, contextPairs);
+      setArabicText(result);
+    } catch (e: any) {
+      setError(e.message || 'An unexpected error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePunctuationCheck = async () => {
+    if (!arabicText || isLoading || isPunctuationLoading) return;
+
+    setIsPunctuationLoading(true);
+    setError(null);
+
+    try {
+        const result = await checkPunctuation(arabicText);
+        setArabicText(result);
+    } catch (e: any) {
+        setError(e.message || 'An unexpected error occurred during punctuation check.');
+    } finally {
+        setIsPunctuationLoading(false);
+    }
+  };
+  
+  const handleTextSelection = (event: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const textarea = event.currentTarget;
+    const selectedText = textarea.value.substring(
+      textarea.selectionStart,
+      textarea.selectionEnd
+    );
+    setSelectedSpanishText(selectedText.trim());
+  };
+
+  const handleTmSearch = () => {
+    if (selectedSpanishText.trim().length === 0) return;
+
+    const searchTerm = selectedSpanishText.toLowerCase();
+    const results = translationMemory.filter(pair => 
+        pair.spanish.toLowerCase().includes(searchTerm)
+    );
+    setTmSearchResults(results);
+    setIsTmSearchModalOpen(true);
+  };
+
+  const handleAskAi = async () => {
+    if (!selectedSpanishText.trim() || !spanishText.trim() || isAskAiLoading) return;
+    
+    setIsAskAiModalOpen(true);
+    setIsAskAiLoading(true);
+    setAskAiResult('');
+
+    try {
+        const result = await researchTerm(selectedSpanishText, spanishText);
+        setAskAiResult(result);
+    } catch (e: any) {
+        setAskAiResult(`An error occurred: ${e.message}`);
+    } finally {
+        setIsAskAiLoading(false);
+    }
+  };
+
+  const handleAddContextPair = useCallback((pair: TranslationPair) => {
+    setContextPairs(prev => {
+        if (prev.some(p => p.spanish === pair.spanish && p.arabic === pair.arabic)) {
+            return prev;
+        }
+        return [...prev, pair];
+    });
+  }, []);
+
+  const handleRemoveContextPair = (indexToRemove: number) => {
+    setContextPairs(prev => prev.filter((_, index) => index !== indexToRemove));
+  };
+
+  const handleClearContext = () => {
+    setContextPairs([]);
+  };
+  
+  const handleCopy = () => {
+    if (!arabicText || isLoading) return;
+    navigator.clipboard.writeText(arabicText).then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000); // Reset after 2 seconds
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+    });
+  };
+
+  const handleClearAll = () => {
+    setSpanishText('');
+    setArabicText('');
+    setContextPairs([]);
+  };
+
+  const canTranslate = translationMemory.length > 0 && spanishText.trim().length > 0 && !isLoading && !isPunctuationLoading;
+  const canClear = spanishText.trim().length > 0 || arabicText.trim().length > 0 || contextPairs.length > 0;
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-200 font-sans p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl sm:text-5xl font-bold text-sky-400">
+            Literary Translator
+          </h1>
+          <p className="text-slate-400 mt-2 text-lg">
+            Spanish to Arabic Translations, Powered by Your Translation Memory
+          </p>
+        </header>
+
+        <main className="space-y-8">
+          <div className="bg-slate-800/50 p-6 rounded-xl shadow-lg ring-1 ring-slate-700">
+            <h2 className="text-2xl font-semibold mb-4 text-slate-100 flex items-center">
+                <span className="bg-sky-500 text-white rounded-full h-8 w-8 text-lg font-bold flex items-center justify-center mr-3">1</span>
+                Upload Translation Memory
+            </h2>
+            
+            {isCloudTmLoading ? (
+                <div className="flex items-center justify-center text-slate-400 p-6">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sky-400 mr-4"></div>
+                    <span>Attempting to load Cloud TM...</span>
+                </div>
+            ) : (
+                <>
+                    {cloudTmFailed && !(fileName && !error) && (
+                      <FileUpload onFileSelect={handleFileSelect} fileName={fileName} />
+                    )}
+                    
+                    {error && (
+                        <div className="mt-4 flex items-center text-red-400 bg-red-900/20 p-3 rounded-lg">
+                            <XCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+                    {fileName && !error && (
+                        <div className="flex items-center text-green-400 bg-green-900/20 p-3 rounded-lg">
+                            <CheckCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+                            <span>
+                                {(fileName === 'Cloud TM' ? 'Cloud' : '')} TM loaded successfully with {translationMemory.length} pairs.
+                            </span>
+                        </div>
+                    )}
+                </>
+            )}
+          </div>
+          
+          <div className="bg-slate-800/50 p-6 rounded-xl shadow-lg ring-1 ring-slate-700">
+            <h2 className="text-2xl font-semibold mb-4 text-slate-100 flex items-center">
+                <span className="bg-sky-500 text-white rounded-full h-8 w-8 text-lg font-bold flex items-center justify-center mr-3">2</span>
+                Translate Your Text
+            </h2>
+
+            {contextPairs.length > 0 && (
+                <div className="mb-6 border border-slate-700 rounded-lg bg-slate-900/50">
+                     <button
+                        onClick={() => setIsContextExpanded(prev => !prev)}
+                        className="w-full flex justify-between items-center p-4 text-left hover:bg-slate-800/50 rounded-t-lg transition-colors"
+                        aria-expanded={isContextExpanded}
+                        aria-controls="context-references-list"
+                    >
+                        <div className="flex items-center">
+                             <h3 className="text-lg font-semibold text-sky-400">View Selected References</h3>
+                            <span className="ml-3 bg-sky-800 text-sky-300 text-xs font-bold px-2 py-1 rounded-full">
+                                {contextPairs.length}
+                            </span>
+                        </div>
+                         <svg className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isContextExpanded ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    {isContextExpanded && (
+                        <div id="context-references-list" className="px-4 pb-4 border-t border-slate-700 pt-4">
+                            <div className="flex justify-end mb-4">
+                                <button
+                                    onClick={handleClearContext}
+                                    className="flex items-center text-sm px-3 py-1.5 bg-slate-700 text-slate-300 rounded-md hover:bg-red-600 hover:text-white transition-colors"
+                                    aria-label="Clear all context references"
+                                >
+                                    <TrashIcon className="w-4 h-4 mr-2" />
+                                    Clear Context
+                                </button>
+                            </div>
+                            <ul className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                                {contextPairs.map((pair, index) => (
+                                    <li key={index} className="flex items-start justify-between p-3 bg-slate-800 rounded-md">
+                                        <div className="flex-1 mr-4">
+                                            <p className="text-sm text-slate-400">{pair.spanish}</p>
+                                            <p className="text-sm font-arabic text-right text-slate-300" dir="rtl">{pair.arabic}</p>
+                                        </div>
+                                        <button onClick={() => handleRemoveContextPair(index)} className="p-1 rounded-full text-slate-500 hover:bg-slate-700 hover:text-red-400 transition-colors" aria-label="Remove context reference" >
+                                            <XIcon className="w-5 h-5" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                    <div className="flex justify-between items-center mb-2">
+                        <label htmlFor="spanish-input" className="block text-sm font-medium text-slate-400">Spanish (Español)</label>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={handleClearAll}
+                                disabled={!canClear}
+                                className="flex items-center text-sm px-3 py-1.5 bg-slate-700 text-slate-300 rounded-md hover:bg-red-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Clear all text and context"
+                            >
+                                <TrashIcon className="w-4 h-4 mr-2" />
+                                <span>Clear</span>
+                            </button>
+                            <button
+                                onClick={handleTmSearch}
+                                disabled={!selectedSpanishText}
+                                className="flex items-center text-sm px-3 py-1.5 bg-slate-700 text-slate-300 rounded-md hover:bg-sky-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Search TM for selected text"
+                            >
+                                <SearchIcon className="w-4 h-4 mr-2" />
+                                <span>Search TM</span>
+                            </button>
+                            <button
+                                onClick={handleAskAi}
+                                disabled={!selectedSpanishText}
+                                className="flex items-center text-sm px-3 py-1.5 bg-slate-700 text-slate-300 rounded-md hover:bg-violet-600 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Ask AI to analyze selected text"
+                            >
+                                <SparklesIcon className="w-4 h-4 mr-2" />
+                                <span>Ask AI</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <textarea
+                        id="spanish-input"
+                        rows={10}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-md p-3 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        placeholder={translationMemory.length > 0 ? "Enter Spanish literary text here..." : "Upload a TM file to enable..."}
+                        value={spanishText}
+                        onChange={(e) => {
+                            setSpanishText(e.target.value);
+                            setSelectedSpanishText('');
+                        }}
+                        onSelect={handleTextSelection}
+                        disabled={translationMemory.length === 0}
+                    />
+                </div>
+                <div className="relative">
+                    <div className="flex justify-between items-center mb-2">
+                        <label htmlFor="arabic-output" className="block text-sm font-medium text-slate-400">Arabic (العربية)</label>
+                        <div className="flex items-center space-x-4">
+                            <button
+                                onClick={handlePunctuationCheck}
+                                disabled={!arabicText || isLoading || isPunctuationLoading}
+                                className="flex items-center text-sm text-slate-400 hover:text-sky-400 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
+                                title="Correct Punctuation"
+                            >
+                                {isPunctuationLoading ? (
+                                    <>
+                                        <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-sky-400 mr-2"></span>
+                                        <span>Correcting...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <PencilIcon className="w-4 h-4 mr-1" />
+                                        <span>Punctuation</span>
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={handleCopy}
+                                disabled={!arabicText || isLoading || isCopied || isPunctuationLoading}
+                                className="flex items-center text-sm text-slate-400 hover:text-sky-400 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
+                                title={isCopied ? "Copied!" : "Copy to clipboard"}
+                            >
+                                {isCopied ? (
+                                    <>
+                                        <CheckCircleIcon className="w-4 h-4 mr-1 text-green-400" />
+                                        <span className="text-green-400">Copied!</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <ClipboardCopyIcon className="w-4 h-4 mr-1" />
+                                        <span>Copy</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        id="arabic-output"
+                        dir="rtl"
+                        lang="ar"
+                        className="font-arabic w-full h-full min-h-[254px] bg-slate-900 border border-slate-700 rounded-md p-3"
+                    >
+                       {isLoading ? (
+                            <Loader />
+                        ) : (
+                            <p className="whitespace-pre-wrap">{arabicText}</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+             <div className="mt-6 flex justify-end">
+                <button
+                    onClick={handleTranslate}
+                    disabled={!canTranslate}
+                    className="flex items-center justify-center px-6 py-3 bg-sky-600 text-white font-semibold rounded-lg shadow-md hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-sky-500 disabled:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-70 transition-colors duration-300"
+                >
+                    <TranslateIcon className="w-5 h-5 mr-2" />
+                    <span>{isLoading ? 'Translating...' : 'Translate'}</span>
+                </button>
+            </div>
+          </div>
+        </main>
+
+        {isTmSearchModalOpen && (
+            <TmSearchResultsModal 
+                results={tmSearchResults} 
+                searchTerm={selectedSpanishText}
+                onClose={() => setIsTmSearchModalOpen(false)} 
+                onAddContext={handleAddContextPair}
+                existingContextPairs={contextPairs}
+            />
+        )}
+
+        {isAskAiModalOpen && (
+            <AskAiModal
+                term={selectedSpanishText}
+                result={askAiResult}
+                isLoading={isAskAiLoading}
+                onClose={() => setIsAskAiModalOpen(false)}
+                onAddContext={handleAddContextPair}
+                existingContextPairs={contextPairs}
+            />
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;

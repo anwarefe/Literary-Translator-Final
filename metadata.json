@@ -1,0 +1,5 @@
+{
+  "name": "Literary Spanish to Arabic Translator",
+  "description": "A web application that translates Spanish literary text to Arabic, using a user-provided Translation Memory (TM) JSON file to simulate a fine-tuned model for context-aware, high-quality translations.",
+  "requestFramePermissions": []
+}
