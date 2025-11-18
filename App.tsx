@@ -67,6 +67,28 @@ const UserHeader: React.FC<{ user: User }> = ({ user }) => {
 };
 
 const App: React.FC = () => {
+    // الاستماع لحدث استعادة كلمة المرور من Supabase
+  React.useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        const newPassword = window.prompt('أدخل كلمة المرور الجديدة:');
+        if (!newPassword) {
+          return;
+        }
+        const { error } = await supabase.auth.updateUser({ password: newPassword });
+        if (error) {
+          window.alert('حدث خطأ أثناء تحديث كلمة المرور: ' + error.message);
+        } else {
+          window.alert('تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمتك الجديدة.');
+        }
+      }
+    });
+
+    return () => {
+      data.subscription.unsubscribe();
+    };
+  }, []);
+
   if (!isSupabaseConfigured || !isGeminiConfigured) {
     return <ConfigurationNotice isSupabaseConfigured={isSupabaseConfigured} isGeminiConfigured={isGeminiConfigured} />;
   }
