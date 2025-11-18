@@ -194,5 +194,3 @@ export const checkPunctuation = async (
   }
 };
 export const isGeminiConfigured = true;
- }
-};
