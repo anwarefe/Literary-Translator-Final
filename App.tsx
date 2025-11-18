@@ -272,33 +272,7 @@ const App: React.FC = () => {
     return;
   }
 
-  // 🔟 Perform translation
-  setIsLoading(true);
-  try {
-    const result = await translateText(spanishText, translationMemory, contextPairs);
-    setArabicText(result);
-
-    // 1️⃣1️⃣ Update monthly usage
-    await supabase.from("word_usage").upsert({
-      user_id: session?.user.id,
-      month: currentMonth,
-      words_used: usedThisMonth + newWords,
-      updated_at: new Date(),
-    });
-
-    // 1️⃣2️⃣ Update daily usage
-    await supabase.from("daily_usage").upsert({
-      user_id: session?.user.id,
-      date: currentDate,
-      words_used: usedToday + newWords,
-      updated_at: new Date(),
-    });
-  } catch (e: any) {
-    setError(e.message || "An unexpected error occurred.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  
 
 
   // 6️⃣ Perform translation
