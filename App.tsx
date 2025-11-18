@@ -199,22 +199,65 @@ const App: React.FC = () => {
   }, []);
 
   const handleTranslate = async () => {
-    if (!spanishText || isLoading) return;
+  if (!spanishText || isLoading) return;
+  setError(null);
 
-    setIsLoading(true);
-    setError(null);
-    setArabicText('');
+  // 1️⃣ Fetch user plan
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", session?.user.id)
+    .single();
 
-    try {
-      const result = await translateText(spanishText, translationMemory, contextPairs);
-      setArabicText(result);
-    } catch (e: any)
-{
-      setError(e.message || 'An unexpected error occurred.');
-    } finally {
-      setIsLoading(false);
-    }
+  const plan = profile?.plan ?? "trial";
+
+  // 2️⃣ Word limits based on plan
+  const planLimits: Record<string, number | null> = {
+    trial: 3000,
+    pro: 50000,
+    unlimited: null,
   };
+
+  const limit = planLimits[plan];
+
+  // 3️⃣ Count words in user input
+  const newWords = spanishText.trim().split(/\s+/).length;
+
+  // 4️⃣ Fetch user usage for the current month
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const { data: usage } = await supabase
+    .from("word_usage")
+    .select("words_used")
+    .eq("user_id", session?.user.id)
+    .eq("month", currentMonth)
+    .single();
+
+  const usedWords = usage?.words_used ?? 0;
+
+  // 5️⃣ Check if exceeded plan limit
+  if (limit !== null && usedWords + newWords > limit) {
+    setError(
+      `⚠ You reached your monthly word limit (${limit.toLocaleString()} words).\n\n⛔ Upgrade your plan to continue using the translator.`
+    );
+    return;
+  }
+
+  // 6️⃣ Perform translation
+  setIsLoading(true);
+  const result = await translateText(spanishText, translationMemory, contextPairs);
+  setArabicText(result);
+
+  // 7️⃣ Update usage count in DB
+  await supabase.from("word_usage").upsert({
+    user_id: session?.user.id,
+    month: currentMonth,
+    words_used: usedWords + newWords,
+    updated_at: new Date(),
+  });
+
+  setIsLoading(false);
+};
+
 
   const handlePunctuationCheck = async () => {
     if (!arabicText || isLoading || isPunctuationLoading) return;
