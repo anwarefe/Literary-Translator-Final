@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase, isSupabaseConfigured } from './services/supabase';
+import { supabase, isSupabaseConfigured } from './services/supabase.ts';
 import { TranslationPair } from './types';
 import { translateText, researchTerm, checkPunctuation, isGeminiConfigured } from './services/geminiService';
 import FileUpload from './components/FileUpload';
