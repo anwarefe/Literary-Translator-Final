@@ -311,11 +311,21 @@ const handleTranslate = async () => {
     }
   } catch (e: any) {
     console.error(e);
-    setError(e?.message || "An unexpected error occurred.");
+
+    const msg = typeof e?.message === "string" ? e.message : "";
+
+    if (msg.includes('"code":503') || msg.toLowerCase().includes("model is overloaded")) {
+      setError(
+        "The translation engine is temporarily overloaded. Please try again with a shorter text or retry after a little while."
+      );
+    } else {
+      setError(msg || "An unexpected error occurred while translating.");
+    }
   } finally {
     setIsLoading(false);
   }
 };
+
 
 
   const handlePunctuationCheck = async () => {
