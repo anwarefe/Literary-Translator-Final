@@ -193,3 +193,6 @@ export const checkPunctuation = async (
     return "An unknown error occurred during punctuation check.";
   }
 };
+export const isGeminiConfigured = true;
+ }
+};
