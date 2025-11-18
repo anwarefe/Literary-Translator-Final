@@ -464,11 +464,27 @@ if (session?.user?.id) {
                             )}
                             
                             {error && (
-                                <div className="mt-4 flex items-center text-red-400 bg-red-900/20 p-3 rounded-lg">
-                                    <XCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
-                                    <span>{error}</span>
-                                </div>
-                            )}
+  <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-3 text-red-200 bg-red-900/20 p-3 rounded-lg">
+    <div className="flex items-start">
+      <XCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
+      {/* نخلي الرسالة تحترم الأسطر الجديدة */}
+      <span className="whitespace-pre-line">{error}</span>
+    </div>
+
+    {/* زر واتساب يظهر فقط إذا كانت الرسالة فيها كلمة WhatsApp */}
+    {error.includes("WhatsApp") && (
+      <a
+        href="https://wa.me/201001080760"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-semibold rounded-md bg-green-500 hover:bg-green-600 text-white"
+      >
+        Contact on WhatsApp
+      </a>
+    )}
+  </div>
+)}
+
                             {fileName && !error && (
                                 <div className="flex items-center text-green-400 bg-green-900/20 p-3 rounded-lg">
                                     <CheckCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
