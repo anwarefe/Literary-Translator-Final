@@ -198,7 +198,7 @@ const App: React.FC = () => {
     reader.readAsText(file);
   }, []);
 
-  const handleTranslate = async () => {
+ const handleTranslate = async () => {
   if (!spanishText || isLoading) return;
   setError(null);
 
@@ -211,36 +211,95 @@ const App: React.FC = () => {
 
   const plan = profile?.plan ?? "trial";
 
-  // 2️⃣ Word limits based on plan
+  // 2️⃣ Monthly word limits based on plan
   const planLimits: Record<string, number | null> = {
     trial: 3000,
     pro: 50000,
     unlimited: null,
   };
 
-  const limit = planLimits[plan];
+  // 3️⃣ Daily limits (Trial only)
+  const dailyLimits: Record<string, number | null> = {
+    trial: 250,
+    pro: null,
+    unlimited: null,
+  };
 
-  // 3️⃣ Count words in user input
+  const monthlyLimit = planLimits[plan];
+  const dailyLimit = dailyLimits[plan];
+
+  // 4️⃣ Count words in current text
   const newWords = spanishText.trim().split(/\s+/).length;
 
-  // 4️⃣ Fetch user usage for the current month
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const { data: usage } = await supabase
+  // 5️⃣ Get current month & date
+  const now = new Date();
+  const currentMonth = now.toISOString().slice(0, 7); // YYYY-MM
+  const currentDate = now.toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // 6️⃣ Fetch monthly usage
+  const { data: monthlyUsage } = await supabase
     .from("word_usage")
     .select("words_used")
     .eq("user_id", session?.user.id)
     .eq("month", currentMonth)
     .single();
 
-  const usedWords = usage?.words_used ?? 0;
+  const usedThisMonth = monthlyUsage?.words_used ?? 0;
 
-  // 5️⃣ Check if exceeded plan limit
-  if (limit !== null && usedWords + newWords > limit) {
+  // 7️⃣ Fetch daily usage
+  const { data: dailyUsage } = await supabase
+    .from("daily_usage")
+    .select("words_used")
+    .eq("user_id", session?.user.id)
+    .eq("date", currentDate)
+    .single();
+
+  const usedToday = dailyUsage?.words_used ?? 0;
+
+  // 8️⃣ Check daily limit
+  if (dailyLimit !== null && usedToday + newWords > dailyLimit) {
     setError(
-      `⚠ You reached your monthly word limit (${limit.toLocaleString()} words).\n\n⛔ Upgrade your plan to continue using the translator.`
+      `⚠ You reached your daily word limit for the Trial plan (${dailyLimit.toLocaleString()} words).\n\n⛔ Come back tomorrow or upgrade your plan to continue using the translator.`
     );
     return;
   }
+
+  // 9️⃣ Check monthly limit
+  if (monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
+    setError(
+      `⚠ You reached your monthly word limit (${monthlyLimit.toLocaleString()} words).\n\n⛔ Upgrade your plan to continue using the translator.`
+    );
+    return;
+  }
+
+  // 🔟 Perform translation
+  setIsLoading(true);
+  try {
+    const result = await translateText(spanishText, translationMemory, contextPairs);
+    setArabicText(result);
+
+    // 1️⃣1️⃣ Update monthly usage
+    await supabase.from("word_usage").upsert({
+      user_id: session?.user.id,
+      month: currentMonth,
+      words_used: usedThisMonth + newWords,
+      updated_at: new Date(),
+    });
+
+    // 1️⃣2️⃣ Update daily usage
+    await supabase.from("daily_usage").upsert({
+      user_id: session?.user.id,
+      date: currentDate,
+      words_used: usedToday + newWords,
+      updated_at: new Date(),
+    });
+  } catch (e: any) {
+    setError(e.message || "An unexpected error occurred.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   // 6️⃣ Perform translation
   setIsLoading(true);
