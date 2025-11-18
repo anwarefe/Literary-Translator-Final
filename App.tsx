@@ -221,19 +221,19 @@ const handleTranslate = async () => {
 
     const plan = profile?.plan ?? "trial";
 
-// 2️⃣ Monthly word limits based on plan
-const planLimits: Record<string, number | null> = {
-  trial: 3000,
-  pro: 50000,
-  unlimited: null, // لا يوجد حد شهري لخطة unlimited
-};
+    // 2️⃣ Monthly word limits based on plan
+    const planLimits: Record<string, number | null> = {
+      trial: 3000,
+      pro: 50000,
+      unlimited: null, // لا يوجد حد شهري لخطة unlimited
+    };
 
-// 3️⃣ Daily limits (Trial only)
-const dailyLimits: Record<string, number | null> = {
-  trial: 250,     // حد يومي لخطة trial
-  pro: null,      // لا يوجد حد يومي لخطة pro
-  unlimited: null, // لا يوجد حد يومي لخطة unlimited
-};
+    // 3️⃣ Daily limits (Trial only)
+    const dailyLimits: Record<string, number | null> = {
+      trial: 250,
+      pro: null,
+      unlimited: null, // لا يوجد حد يومي لخطة unlimited
+    };
 
     const monthlyLimit = planLimits[plan];
     const dailyLimit = dailyLimits[plan];
@@ -266,25 +266,23 @@ const dailyLimits: Record<string, number | null> = {
 
     const usedToday = dailyUsage?.words_used ?? 0;
 
-   // 8️⃣ Check daily limit (for Trial and Pro plans only)
-if (plan !== 'unlimited' && dailyLimit !== null && usedToday + newWords > dailyLimit) {
-  setError(
-    `⚠ You reached your daily word limit for the ${plan} plan (${dailyLimit.toLocaleString()} words).\n\n⛔ Come back tomorrow or contact us on WhatsApp (+201001080760) to upgrade your plan.`
-  );
-  setIsLoading(false);
-  return;
-}
+    // 8️⃣ Check daily limit (for Trial and Pro plans only)
+    if (plan !== 'unlimited' && dailyLimit !== null && usedToday + newWords > dailyLimit) {
+      setError(
+        `⚠ You reached your daily word limit for the ${plan} plan (${dailyLimit.toLocaleString()} words).\n\n⛔ Come back tomorrow or contact us on WhatsApp (+201001080760) to upgrade your plan.`
+      );
+      setIsLoading(false);
+      return;
+    }
 
-// 9️⃣ Check monthly limit (for Trial and Pro plans only)
-if (plan !== 'unlimited' && monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
-  setError(
-    `⚠ You reached your monthly word limit for the ${plan} plan (${monthlyLimit.toLocaleString()} words).\n\n⛔ Please contact us on WhatsApp (+201001080760) to upgrade your plan.`
-  );
-  setIsLoading(false);
-  return;
-}
-
-
+    // 9️⃣ Check monthly limit (for Trial and Pro plans only)
+    if (plan !== 'unlimited' && monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
+      setError(
+        `⚠ You reached your monthly word limit for the ${plan} plan (${monthlyLimit.toLocaleString()} words).\n\n⛔ Please contact us on WhatsApp (+201001080760) to upgrade your plan.`
+      );
+      setIsLoading(false);
+      return;
+    }
 
     // 🔟 Perform translation
     const result = await translateText(
@@ -295,28 +293,28 @@ if (plan !== 'unlimited' && monthlyLimit !== null && usedThisMonth + newWords > 
     setArabicText(result);
 
     // 1️⃣1️⃣ Update monthly usage
-if (session?.user?.id) {
-  await supabase.from("word_usage").upsert(
-    {
-      user_id: session.user.id,
-      month: currentMonth,
-      words_used: usedThisMonth + newWords,
-      updated_at: new Date(),
-    },
-    { onConflict: "user_id,month" }
-  );
+    if (session?.user?.id) {
+      await supabase.from("word_usage").upsert(
+        {
+          user_id: session.user.id,
+          month: currentMonth,
+          words_used: usedThisMonth + newWords,
+          updated_at: new Date(),
+        },
+        { onConflict: "user_id,month" }
+      );
 
-  // 1️⃣2️⃣ Update daily usage
-  await supabase.from("daily_usage").upsert(
-    {
-      user_id: session.user.id,
-      date: currentDate,
-      words_used: usedToday + newWords,
-      updated_at: new Date(),
-    },
-    { onConflict: "user_id,date" }
-  );
-}
+      // 1️⃣2️⃣ Update daily usage
+      await supabase.from("daily_usage").upsert(
+        {
+          user_id: session.user.id,
+          date: currentDate,
+          words_used: usedToday + newWords,
+          updated_at: new Date(),
+        },
+        { onConflict: "user_id,date" }
+      );
+    }
 
   } catch (e: any) {
     console.error(e);
