@@ -267,22 +267,24 @@ const handleTranslate = async () => {
     const usedToday = dailyUsage?.words_used ?? 0;
 
     // 8️⃣ Check daily limit (for Trial)
-    if (dailyLimit !== null && usedToday + newWords > dailyLimit) {
-      setError(
-        `⚠ You reached your daily word limit for the Trial plan (${dailyLimit.toLocaleString()} words).\n\n⛔ Come back tomorrow or upgrade your plan to continue using the translator.`
-      );
-      setIsLoading(false);
-      return;
-    }
+if (dailyLimit !== null && usedToday + newWords > dailyLimit) {
+  setError(
+    `⚠ You reached your daily word limit for the Trial plan (${dailyLimit.toLocaleString()} words).\n\n⛔ Come back tomorrow or contact us on WhatsApp (+201001080760) to upgrade your plan.`
+  );
+  setIsLoading(false);
+  return;
+}
+
 
     // 9️⃣ Check monthly limit
-    if (monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
-      setError(
-        `⚠ You reached your monthly word limit (${monthlyLimit.toLocaleString()} words).\n\n⛔ Upgrade your plan to continue using the translator.`
-      );
-      setIsLoading(false);
-      return;
-    }
+if (monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
+  setError(
+    `⚠ You reached your monthly word limit (${monthlyLimit.toLocaleString()} words).\n\n⛔ Please contact us on WhatsApp (+201001080760) to upgrade your plan.`
+  );
+  setIsLoading(false);
+  return;
+}
+
 
     // 🔟 Perform translation
     const result = await translateText(
