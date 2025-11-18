@@ -321,14 +321,8 @@ const App: React.FC = () => {
         <div className="p-4 sm:p-6 lg:p-8">
             <div className="max-w-7xl mx-auto">
                 <UserHeader user={session.user} />
-                <header className="text-center mb-8">
-                <h1 className="text-4xl sm:text-5xl font-bold text-sky-400">
-                    Literary Translator
-                </h1>
-                <p className="text-slate-400 mt-2 text-lg">
-                    Spanish to Arabic Translations, Powered by Your Translation Memory
-                </p>
-                </header>
+<div className="mb-8"></div>
+
 
                 <main className="space-y-8">
                 <div className="bg-slate-800/50 p-6 rounded-xl shadow-lg ring-1 ring-slate-700">
