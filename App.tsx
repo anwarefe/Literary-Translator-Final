@@ -1,3 +1,4 @@
+import Auth from "./components/Auth";
 import React, { useState, useCallback, useEffect } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from './services/supabase.ts';
@@ -5,7 +6,6 @@ import { TranslationPair } from './types.ts';
 import { translateText, researchTerm, checkPunctuation, isGeminiConfigured } from './services/geminiService.ts';
 import FileUpload from './components/FileUpload.tsx';
 import Loader from './components/Loader.tsx';
-import Auth from './components/Auth.tsx';
 import { 
   TranslateIcon, CheckCircleIcon, XCircleIcon, SearchIcon, XIcon, ClipboardCopyIcon, 
   TrashIcon, SparklesIcon, PencilIcon, LogOutIcon 
