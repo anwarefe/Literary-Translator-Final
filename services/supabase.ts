@@ -48,6 +48,7 @@ export const signUpUser = async (
     // 2) إضافة البيانات إلى جدول profiles
     const username = `${firstName} ${lastName}`.trim();  // اجمع الاسم الأول واللقب في username
 
+    // تأكد من إدخال بيانات في جدول profiles للمستخدم الجديد
     const { error: profileError } = await supabase
       .from("profiles")
       .upsert({
@@ -69,4 +70,3 @@ export const signUpUser = async (
     throw err;
   }
 };
-
