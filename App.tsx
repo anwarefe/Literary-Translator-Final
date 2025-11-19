@@ -268,7 +268,8 @@ const handleTranslate = async () => {
     const usedToday = dailyUsage?.words_used ?? 0;
 
     // 8️⃣ Check daily limit (for Trial plans only)
-    if (plan === 'trial' && dailyLimit !== null && usedToday + newWords > dailyLimit) {
+    // التأكد من عدم التحقق من الحد اليومي إذا كانت الخطة هي "unlimited"
+    if (plan !== 'unlimited' && dailyLimit !== null && usedToday + newWords > dailyLimit) {
       setError(
         `⚠ You reached your daily word limit for the ${plan} plan (${dailyLimit.toLocaleString()} words).\n\n⛔ Come back tomorrow or contact us on WhatsApp (+201001080760) to upgrade your plan.`
       );
@@ -277,7 +278,7 @@ const handleTranslate = async () => {
     }
 
     // 9️⃣ Check monthly limit (for Trial plans only)
-    if (plan === 'trial' && monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
+    if (plan !== 'unlimited' && monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
       setError(
         `⚠ You reached your monthly word limit for the ${plan} plan (${monthlyLimit.toLocaleString()} words).\n\n⛔ Please contact us on WhatsApp (+201001080760) to upgrade your plan.`
       );
@@ -333,6 +334,7 @@ const handleTranslate = async () => {
     setIsLoading(false);
   }
 };
+
 
 
 
