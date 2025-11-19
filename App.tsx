@@ -221,22 +221,14 @@ const handleTranslate = async () => {
 
     const plan = profile?.plan ?? "trial";
 
-    // 2️⃣ Monthly word limits based on plan
+    // 2️⃣ Monthly word limits based on plan (تم تبسيطها الآن)
     const planLimits: Record<string, number | null> = {
-      trial: 3000,
-      pro: 50000,
-      unlimited: null, // لا يوجد حد شهري لخطة unlimited
+      trial: 500,   // الحد اليومي لخطة trial هو 500 كلمة
+      unlimited: null,  // لا يوجد حد يومي لخطة unlimited
     };
 
-    // 3️⃣ Daily limits (Trial only)
-    const dailyLimits: Record<string, number | null> = {
-      trial: 250,
-      pro: null,
-      unlimited: null, // لا يوجد حد يومي لخطة unlimited
-    };
-
-    const monthlyLimit = planLimits[plan];
-    const dailyLimit = dailyLimits[plan];
+    // 3️⃣ تحديد الحد اليومي بناءً على الخطة
+    const dailyLimit = planLimits[plan];
 
     // 4️⃣ Count words in current text
     const newWords = spanishText.trim().split(/\s+/).length;
@@ -266,8 +258,8 @@ const handleTranslate = async () => {
 
     const usedToday = dailyUsage?.words_used ?? 0;
 
-    // 8️⃣ Check daily limit (for Trial and Pro plans only)
-    if (plan !== 'unlimited' && dailyLimit !== null && usedToday + newWords > dailyLimit) {
+    // 8️⃣ Check daily limit (for Trial plans only)
+    if (plan === 'trial' && dailyLimit !== null && usedToday + newWords > dailyLimit) {
       setError(
         `⚠ You reached your daily word limit for the ${plan} plan (${dailyLimit.toLocaleString()} words).\n\n⛔ Come back tomorrow or contact us on WhatsApp (+201001080760) to upgrade your plan.`
       );
@@ -275,8 +267,8 @@ const handleTranslate = async () => {
       return;
     }
 
-    // 9️⃣ Check monthly limit (for Trial and Pro plans only)
-    if (plan !== 'unlimited' && monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
+    // 9️⃣ Check monthly limit (for Trial plans only)
+    if (plan === 'trial' && monthlyLimit !== null && usedThisMonth + newWords > monthlyLimit) {
       setError(
         `⚠ You reached your monthly word limit for the ${plan} plan (${monthlyLimit.toLocaleString()} words).\n\n⛔ Please contact us on WhatsApp (+201001080760) to upgrade your plan.`
       );
@@ -332,7 +324,6 @@ const handleTranslate = async () => {
     setIsLoading(false);
   }
 };
-
 
 
   const handlePunctuationCheck = async () => {
