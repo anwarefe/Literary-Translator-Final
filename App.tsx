@@ -489,11 +489,10 @@ const handleTranslate = async () => {
 
                             {fileName && !error && (
                                 <div className="flex items-center text-green-400 bg-green-900/20 p-3 rounded-lg">
-                                    <CheckCircleIcon className="w-5 h-5 mr-2 flex-shrink-0" />
-                                    <span>
-                                        {(fileName === 'Cloud TM' ? 'Cloud' : '')} TM loaded successfully with {translationMemory.length} pairs.
-                                    </span>
-                                </div>
+  <CheckCircleIcon className="w-5 h-5 mr-2" />
+  <span>Cloud TM loaded successfully</span>
+</div>
+
                             )}
                         </>
                     )}
