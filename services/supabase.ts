@@ -33,16 +33,20 @@ export const signUpUser = async (
 
     const user = data.user;
 
+    if (!user?.id) {
+      throw new Error("User ID was not returned from sign-up.");
+    }
+
     // 2) إنشاء سجل في profiles
     const username = `${firstName} ${lastName}`.trim();
 
     const { error: profileError } = await supabase
       .from("profiles")
       .upsert({
-        id: user?.id,
+        id: user.id,    // PK
         email,
-        username,        // ← الاسم الكامل هنا
-        plan: "trial",   // ← مبدئياً يبدأ بخطة trial
+        username,       // الاسم الكامل
+        plan: "trial",  // يبدأ بخطة trial
       });
 
     if (profileError) {
