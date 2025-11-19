@@ -54,6 +54,8 @@ export const signUpUser = async (
       .upsert({
         id: user.id,            // id المستخدم من Supabase
         email,                  // البريد الإلكتروني
+        first_name: firstName,  // الاسم الأول
+        last_name: lastName,    // اللقب
         username,               // الاسم الكامل
         plan: "trial",          // الخطة الافتراضية هي "trial"
       });
