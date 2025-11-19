@@ -223,12 +223,20 @@ const handleTranslate = async () => {
 
     // 2️⃣ Monthly word limits based on plan (تم تبسيطها الآن)
     const planLimits: Record<string, number | null> = {
-      trial: 500,   // الحد اليومي لخطة trial هو 500 كلمة
-      unlimited: null,  // لا يوجد حد يومي لخطة unlimited
+      trial: 3000,  // حد الكلمات الشهري للخطة trial هو 3000
+      pro: 50000,   // حد الكلمات الشهري للخطة pro هو 50000
+      unlimited: null,  // لا يوجد حد شهري لخطة unlimited
     };
 
-    // 3️⃣ تحديد الحد اليومي بناءً على الخطة
-    const dailyLimit = planLimits[plan];
+    // 3️⃣ Daily limits (Trial only)
+    const dailyLimits: Record<string, number | null> = {
+      trial: 500,   // الحد اليومي لخطة trial هو 500 كلمة
+      pro: null,
+      unlimited: null, // لا يوجد حد يومي لخطة unlimited
+    };
+
+    const monthlyLimit = planLimits[plan];  // تحديد الحد الشهري بناءً على الخطة
+    const dailyLimit = dailyLimits[plan];  // تحديد الحد اليومي بناءً على الخطة
 
     // 4️⃣ Count words in current text
     const newWords = spanishText.trim().split(/\s+/).length;
@@ -324,6 +332,7 @@ const handleTranslate = async () => {
     setIsLoading(false);
   }
 };
+
 
 
   const handlePunctuationCheck = async () => {
