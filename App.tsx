@@ -207,9 +207,18 @@ const handleTranslate = async () => {
   try {
     // ✅ تأكد أن للمستخدم صف في جدول profiles (لو مش موجود ينشئه بـ trial)
     if (session?.user?.id) {
-      await supabase
+      const { data: profile } = await supabase
         .from("profiles")
-        .upsert({ id: session.user.id, plan: "trial" });
+        .select("plan")
+        .eq("id", session.user.id)
+        .single();
+
+      // التأكد من أن الخطة لم تُعين سابقًا
+      if (!profile || !profile.plan) {
+        await supabase
+          .from("profiles")
+          .upsert({ id: session.user.id, plan: "trial" });  // تعيين الخطة إلى trial إذا كانت فارغة
+      }
     }
 
     // 1️⃣ Fetch user plan
@@ -223,20 +232,12 @@ const handleTranslate = async () => {
 
     // 2️⃣ Monthly word limits based on plan (تم تبسيطها الآن)
     const planLimits: Record<string, number | null> = {
-      trial: 3000,  // حد الكلمات الشهري للخطة trial هو 3000
-      pro: 50000,   // حد الكلمات الشهري للخطة pro هو 50000
-      unlimited: null,  // لا يوجد حد شهري لخطة unlimited
-    };
-
-    // 3️⃣ Daily limits (Trial only)
-    const dailyLimits: Record<string, number | null> = {
       trial: 500,   // الحد اليومي لخطة trial هو 500 كلمة
-      pro: null,
-      unlimited: null, // لا يوجد حد يومي لخطة unlimited
+      unlimited: null,  // لا يوجد حد يومي لخطة unlimited
     };
 
-    const monthlyLimit = planLimits[plan];  // تحديد الحد الشهري بناءً على الخطة
-    const dailyLimit = dailyLimits[plan];  // تحديد الحد اليومي بناءً على الخطة
+    // 3️⃣ تحديد الحد اليومي بناءً على الخطة
+    const dailyLimit = planLimits[plan];
 
     // 4️⃣ Count words in current text
     const newWords = spanishText.trim().split(/\s+/).length;
@@ -332,6 +333,7 @@ const handleTranslate = async () => {
     setIsLoading(false);
   }
 };
+
 
 
 
