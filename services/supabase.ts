@@ -13,7 +13,7 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-key'
 );
 
-// دالة التسجيل (Sign Up)
+// دالة التسجيل
 export const signUpUser = async (
   email: string,
   password: string,
@@ -21,7 +21,7 @@ export const signUpUser = async (
   lastName: string
 ) => {
   try {
-    // تسجيل المستخدم في Supabase Auth
+    // 1) إنشاء الحساب في Supabase Auth
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -45,13 +45,15 @@ export const signUpUser = async (
       throw new Error("User ID was not returned from sign-up.");
     }
 
-    // إضافة البيانات إلى جدول profiles
+    // 2) إضافة البيانات إلى جدول profiles
+    const username = `${firstName} ${lastName}`.trim();  // اجمع الاسم الأول واللقب في username
+
     const { error: profileError } = await supabase
       .from("profiles")
       .upsert({
         id: user.id,            // id المستخدم من Supabase
         email,                  // البريد الإلكتروني
-        username: `${firstName} ${lastName}`,  // الاسم الكامل
+        username,               // الاسم الكامل
         plan: "trial",          // الخطة الافتراضية هي "trial"
       });
 
@@ -67,3 +69,4 @@ export const signUpUser = async (
     throw err;
   }
 };
+
