@@ -44,30 +44,35 @@ const Auth: React.FC = () => {
     setIsSignUpOpen(true);
   };
 
-  // ✅ تنفيذ التسجيل من النافذة المنبثقة
-  const handleSignUpSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    setMessage(null);
-    setLoading(true);
+// ✅ تنفيذ التسجيل من النافذة المنبثقة
+const handleSignUpSubmit = async (event: React.FormEvent) => {
+  event.preventDefault();
+  setError(null);
+  setMessage(null);
+  setLoading(true);
 
-    try {
-      await signUpUser(
-        signUpEmail,
-        signUpPassword,
-        signUpFirstName,
-        signUpLastName
-      );
+  // إضافة تسجيل للطباعة للتأكد من القيم
+  console.log("First Name:", signUpFirstName);
+  console.log("Last Name:", signUpLastName);
 
-      setMessage('Check your email for the verification link!');
-      setIsSignUpOpen(false);
-      setEmail(signUpEmail); // نملأ إيميل الدخول تلقائياً
-    } catch (e: any) {
-      setError(e.message || 'An error occurred while signing up.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    await signUpUser(
+      signUpEmail,
+      signUpPassword,
+      signUpFirstName,
+      signUpLastName
+    );
+
+    setMessage('Check your email for the verification link!');
+    setIsSignUpOpen(false);
+    setEmail(signUpEmail); // نملأ إيميل الدخول تلقائياً
+  } catch (e: any) {
+    setError(e.message || 'An error occurred while signing up.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // 🔑 نسيت كلمة المرور
   const handleResetPassword = async (
