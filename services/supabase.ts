@@ -4,7 +4,6 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// ✅ التأكد من إعداد المفاتيح
 export const isSupabaseConfigured = !!supabaseUrl && !!supabaseAnonKey;
 
 // 🚀 إنشاء عميل Supabase
