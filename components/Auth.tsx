@@ -92,21 +92,31 @@ const Auth: React.FC = () => {
     setLoading(false);
   };
 
-  // 🔓 تسجيل الدخول باستخدام Google
-  const handleGoogleSignIn = async () => {
-    setError(null);
-    setMessage(null);
-    setLoading(true);
+// 🔓 تسجيل الدخول باستخدام Google
+const handleGoogleSignIn = async () => {
+  setError(null);
+  setMessage(null);
+  setLoading(true);
 
+  try {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin, // يرجع للتطبيق بعد نجاح الدخول
+      },
     });
 
     if (error) {
       setError(error.message);
-      setLoading(false);
     }
-  };
+  } catch (e: any) {
+    setError(e?.message || "Google sign-in failed");
+  } finally {
+    // غالبًا لن تُنفَّذ بعد الـ redirect، لكن لا ضرر في وجودها
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-screen p-4">
