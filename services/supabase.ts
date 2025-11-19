@@ -15,30 +15,36 @@ export const supabase = createClient(
 
 // دالة التسجيل
 export const signUpUser = async (email: string, password: string, firstName: string, lastName: string) => {
-  const { user, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error('Error during sign-up:', error.message);
-    throw error;
-  }
-
-  // إضافة الاسم الأول واللقب إلى جدول profiles
-  const { data, profileError } = await supabase
-    .from('profiles')
-    .upsert({
-      id: user?.id,
+  try {
+    // تسجيل المستخدم باستخدام البريد الإلكتروني وكلمة المرور
+    const { user, error } = await supabase.auth.signUp({
       email,
-      first_name: firstName,
-      last_name: lastName,
+      password,
     });
 
-  if (profileError) {
-    console.error('Error creating profile:', profileError.message);
-    throw profileError;
-  }
+    if (error) {
+      console.error('Error during sign-up:', error.message);
+      throw error;
+    }
 
-  return user;
+    // إضافة الاسم الأول واللقب إلى جدول profiles
+    const { data, profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user?.id,           // ID من Supabase
+        email,                  // البريد الإلكتروني
+        first_name: firstName,  // الاسم الأول
+        last_name: lastName,    // الاسم الأخير
+      });
+
+    if (profileError) {
+      console.error('Error creating profile:', profileError.message);
+      throw profileError;
+    }
+
+    return user;
+  } catch (error) {
+    console.error('Error during user sign up:', error);
+    throw error;
+  }
 };
