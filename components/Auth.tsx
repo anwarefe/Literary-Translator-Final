@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase.ts';
-import { GoogleIcon, FacebookIcon, MicrosoftIcon } from './icons.tsx';
+import { GoogleIcon } from './icons.tsx';
 
 const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [firstName, setFirstName] = useState('');  // إضافة حالة للاسم الأول
+  const [lastName, setLastName] = useState('');    // إضافة حالة للاسم الأخير
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -24,20 +26,25 @@ const Auth: React.FC = () => {
     setError(null);
     setMessage(null);
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) setError(error.message);
-    else setMessage('Check your email for the verification link!');
-    setLoading(false);
-  };
 
-  const handleOAuthSignIn = async (provider: 'google' | 'facebook' | 'microsoft') => {
-    setLoading(true);
-    setError(null);
-    const { error } = await supabase.auth.signInWithOAuth({ provider });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
+    // تسجيل المستخدم
+    const { user, error } = await supabase.auth.signUp({ email, password });
+    if (error) setError(error.message);
+    else {
+      // إضافة بيانات المستخدم إلى جدول profiles
+      const { profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user?.id,
+          email,
+          first_name: firstName,   // تخزين الاسم الأول
+          last_name: lastName,     // تخزين الاسم الأخير
+        });
+
+      if (profileError) setError(profileError.message);
+      else setMessage('Check your email for the verification link!');
     }
+    setLoading(false);
   };
 
   // 🔑 نسيت كلمة المرور
@@ -71,10 +78,37 @@ const Auth: React.FC = () => {
         {message && <div className="p-3 text-center text-green-400 bg-green-900/20 rounded-lg">{message}</div>}
 
         <form className="space-y-4" onSubmit={handleLogin}>
+          {/* إضافة الحقول الجديدة */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-slate-400">
-              Email
-            </label>
+            <label htmlFor="firstName" className="block text-sm font-medium text-slate-400">First Name</label>
+            <input
+              id="firstName"
+              type="text"
+              value={firstName}
+              required
+              onChange={(e) => setFirstName(e.target.value)}
+              className="w-full px-3 py-2 mt-1 text-slate-200 bg-slate-900 border border-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+              placeholder="First Name"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="lastName" className="block text-sm font-medium text-slate-400">Last Name</label>
+            <input
+              id="lastName"
+              type="text"
+              value={lastName}
+              required
+              onChange={(e) => setLastName(e.target.value)}
+              className="w-full px-3 py-2 mt-1 text-slate-200 bg-slate-900 border border-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+              placeholder="Last Name"
+              disabled={loading}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-slate-400">Email</label>
             <input
               id="email"
               type="email"
@@ -86,10 +120,9 @@ const Auth: React.FC = () => {
               disabled={loading}
             />
           </div>
+
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-400">
-              Password
-            </label>
+            <label htmlFor="password" className="block text-sm font-medium text-slate-400">Password</label>
             <input
               id="password"
               type="password"
@@ -139,6 +172,7 @@ const Auth: React.FC = () => {
           </div>
         </div>
 
+        {/* زر الدخول باستخدام Google فقط */}
         <div className="space-y-4">
           <button
             onClick={() => handleOAuthSignIn('google')}
@@ -147,20 +181,6 @@ const Auth: React.FC = () => {
           >
             <GoogleIcon className="w-5 h-5 mr-3" /> Continue with Google
           </button>
-          <button
-            onClick={() => handleOAuthSignIn('facebook')}
-            disabled={loading}
-            className="w-full inline-flex items-center justify-center py-2 px-4 border border-slate-600 rounded-md shadow-sm bg-slate-800 text-sm font-medium text-slate-300 hover:bg-slate-700 disabled:opacity-50"
-          >
-            <FacebookIcon className="w-5 h-5 mr-3" /> Continue with Facebook
-          </button>
-          <button
-            onClick={() => handleOAuthSignIn('microsoft')}
-            disabled={loading}
-            className="w-full inline-flex items-center justify-center py-2 px-4 border border-slate-600 rounded-md shadow-sm bg-slate-800 text-sm font-medium text-slate-300 hover:bg-slate-700 disabled:opacity-50"
-          >
-            <MicrosoftIcon className="w-5 h-5 mr-3" /> Continue with Microsoft
-          </button>
         </div>
       </div>
     </div>
@@ -168,3 +188,4 @@ const Auth: React.FC = () => {
 };
 
 export default Auth;
+
