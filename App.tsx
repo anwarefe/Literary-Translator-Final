@@ -334,7 +334,6 @@ const handleTranslate = async () => {
 };
 
 
-
   const handlePunctuationCheck = async () => {
     if (!arabicText || isLoading || isPunctuationLoading) return;
 
