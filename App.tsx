@@ -119,19 +119,49 @@ const App: React.FC = () => {
   const [cloudTmFailed, setCloudTmFailed] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check initial session
+    const syncProfile = async (session: any) => {
+      try {
+        const user = session?.user;
+        if (!user) return;
+
+        const email = user.email ?? "";
+
+        const meta: any = user.user_metadata || {};
+        const fullName =
+          (
+            meta.full_name ||
+            meta.name ||
+            [meta.given_name, meta.family_name].filter(Boolean).join(" ")
+          ).trim() || null;
+
+        await supabase
+          .from("profiles")
+          .upsert({
+            id: user.id,
+            email,
+            username: fullName,
+          });
+      } catch (e) {
+        console.error("Error syncing profile:", e);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setIsSupabaseLoading(false);
+      syncProfile(session);
     });
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session);
+        syncProfile(session);
+      }
+    );
 
     return () => subscription.unsubscribe();
   }, []);
+
 
   useEffect(() => {
     if (session) { // Only fetch TM if user is logged in
